@@ -11,6 +11,10 @@ import { makeTurnosController } from "../controllers/turnosController.js";
 import { makeUsuariosController } from "../controllers/usuariosController.js";
 import { crearTurnosRouter } from "../routes/turnosRoutes.js";
 import { crearUsuariosRouter } from "../routes/usuariosRoutes.js";
+import config from "../config/config.js";
+import { makeEventBus } from "../events/eventBus.js";
+import { registerTurnoListeners } from "../events/turnoListeners.js";
+import { makeNotifier } from "../notifiers/notifierFactory.js";
 
 export async function crearContainer() {
   const daos = {
@@ -23,8 +27,14 @@ export async function crearContainer() {
   await daos.usuariosDao.init?.();
   await daos.turnosDao.init?.();
 
+    // Eventos: el bus conecta a quien emite (casos de uso) con quien escucha (listeners).
+  // Los listeners se registran ANTES de recibir requests para no perder ningún evento.
+  const events = makeEventBus();
+  const notifier = makeNotifier(config.notifier);
+  registerTurnoListeners(events, notifier);
+
   const useCases = {
-    turnos: makeTurnoUseCases(daos.turnosDao, daos.usuariosDao),
+    turnos: makeTurnoUseCases(daos.turnosDao, daos.usuariosDao, events),
     usuarios: makeUsuarioUseCases(daos.usuariosDao, daos.turnosDao),
   };
 
@@ -37,5 +47,5 @@ export async function crearContainer() {
   router.use("/turnos", crearTurnosRouter(controllers.turnos));
   router.use("/usuarios", crearUsuariosRouter(controllers.usuarios));
 
-  return { daos, useCases, controllers, router };
+  return { daos, events,  useCases, controllers, router };
 }
