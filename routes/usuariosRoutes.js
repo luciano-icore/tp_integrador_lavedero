@@ -1,5 +1,7 @@
 /**
- * Rutas de usuarios: verbo + path → validaciones → controller.
+ * Rutas de usuarios: verbo + path → autenticación/permisos → validaciones → controller.
+ *
+ * Acceso: todo el recurso es solo para admin. El autoregistro público vive en /api/auth/register.
  */
 import { Router } from "express";
 import validate from "../middlewares/validate.js";
@@ -10,8 +12,11 @@ import {
   listarUsuariosQuerySchema,
 } from "../schemas/usuarioSchema.js";
 
-export function crearUsuariosRouter(controller) {
+export function crearUsuariosRouter(controller, { authenticate, authorize }) {
   const router = Router();
+
+  // Todo el recurso exige token válido y rol admin
+  router.use(authenticate, authorize("admin"));
 
   router.get("/", validate(listarUsuariosQuerySchema, "query"), controller.listar);
   router.get("/:id", validate(usuarioIdParamSchema, "params"), controller.obtener);
