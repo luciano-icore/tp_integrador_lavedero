@@ -39,7 +39,7 @@ export async function crearContainer() {
 
   const useCases = {
     turnos: makeTurnoUseCases(daos.turnosDao, daos.usuariosDao, events),
-    usuarios: makeUsuarioUseCases(daos.usuariosDao, daos.turnosDao),
+    usuarios: makeUsuarioUseCases(daos.usuariosDao, daos.turnosDao, hasher),
   };
 
   const controllers = {
