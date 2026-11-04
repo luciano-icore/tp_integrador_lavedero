@@ -1,7 +1,7 @@
 /**
  * DAO de usuarios en memoria (array de JavaScript).
  * Misma interfaz que tendrá el DAO de Sequelize. Devuelve copias.
- * Acá SÍ está el password: lo necesita el login. Quien responde por HTTP lo saca.
+ * Guarda passwordHash pero NUNCA lo devuelve, salvo en getCredentialsByEmail (para el login).
  */
 export default class UsuariosMemoryDao {
   #usuarios = [];
@@ -11,16 +11,27 @@ export default class UsuariosMemoryDao {
     seed.forEach((u) => this.#usuarios.push({ id: this.#nextId++, ...u }));
   }
 
+  // Copia del usuario sin el hash de la contraseña
+  #publico({ passwordHash: _oculto, ...usuario }) {
+    return usuario;
+  }
+
   async getAll() {
-    return this.#usuarios.map((u) => ({ ...u }));
+    return this.#usuarios.map((u) => this.#publico(u));
   }
 
-  async getById(id) {
+ async getById(id) {
     const usuario = this.#usuarios.find((u) => u.id === id);
-    return usuario ? { ...usuario } : null;
+    return usuario ? this.#publico(usuario) : null;
   }
 
-  async getByEmail(email) {
+ async getByEmail(email) {
+    const usuario = this.#usuarios.find((u) => u.email === email);
+    return usuario ? this.#publico(usuario) : null;
+  }
+
+  // Credenciales para el login: es el ÚNICO método que devuelve el hash de la contraseña
+  async getCredentialsByEmail(email) {
     const usuario = this.#usuarios.find((u) => u.email === email);
     return usuario ? { ...usuario } : null;
   }

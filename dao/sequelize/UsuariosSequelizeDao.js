@@ -1,8 +1,13 @@
 /**
  * DAO de usuarios con Sequelize. Misma interfaz que UsuariosMemoryDao.
  * Devuelve siempre objetos planos (raw / get({ plain: true })), nunca instancias del ORM.
- */
+ * Guarda passwordHash pero NUNCA lo devuelve, salvo en getCredentialsByEmail (para el login). 
+*/
 import { UsuarioModel } from "../models/index.js";
+
+// Columnas pedidas explícitamente: sin "attributes", Sequelize hace SELECT * y traería
+// passwordHash en cada lectura. Todas las lecturas comunes de este DAO usan esta lista.
+const ATRIBUTOS_PUBLICOS = ["id", "nombre", "email", "rol"];
 
 export default class UsuariosSequelizeDao {
   #seed;
@@ -19,28 +24,40 @@ export default class UsuariosSequelizeDao {
     }
   }
 
-  async getAll() {
-    return UsuarioModel.findAll({ raw: true, order: [["id", "ASC"]] });
+   async getAll() {
+    return UsuarioModel.findAll({ attributes: ATRIBUTOS_PUBLICOS, raw: true, order: [["id", "ASC"]] });
   }
 
-  async getById(id) {
-    return UsuarioModel.findByPk(id, { raw: true });
+
+ async getById(id) {
+    return UsuarioModel.findByPk(id, { attributes: ATRIBUTOS_PUBLICOS, raw: true });
   }
 
-  async getByEmail(email) {
-    return UsuarioModel.findOne({ where: { email }, raw: true });
+   async getByEmail(email) {
+    return UsuarioModel.findOne({ where: { email }, attributes: ATRIBUTOS_PUBLICOS, raw: true });
   }
 
-  async save(data) {
+  // Credenciales para el login: es el ÚNICO método que devuelve el hash de la contraseña
+  async getCredentialsByEmail(email) {
+    return UsuarioModel.findOne({
+      where: { email },
+      attributes: [...ATRIBUTOS_PUBLICOS, "passwordHash"],
+      raw: true,
+    });
+  }
+
+    async save(data) {
     const creado = await UsuarioModel.create(data);
-    return creado.get({ plain: true });
+    // create() devuelve todo lo insertado (incluido el hash): se relee con las columnas públicas
+    return this.getById(creado.id);
   }
 
   async update(id, cambios) {
     const usuario = await UsuarioModel.findByPk(id);
     if (!usuario) return null;
     await usuario.update(cambios);
-    return usuario.get({ plain: true });
+    // La instancia trae el hash cargado: se relee con las columnas públicas
+    return this.getById(id);
   }
 
   async delete(id) {
