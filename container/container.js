@@ -15,10 +15,14 @@ import config from "../config/config.js";
 import { makeEventBus } from "../events/eventBus.js";
 import { registerTurnoListeners } from "../events/turnoListeners.js";
 import { makeNotifier } from "../notifiers/notifierFactory.js";
+import { makePasswordHasher } from "../security/passwordHasher.js";
 
 export async function crearContainer() {
+  // Seguridad: el hasher se crea primero porque el seed de usuarios necesita guardar hashes.
+  const hasher = makePasswordHasher({ rounds: config.bcryptRounds });
+
   const daos = {
-    usuariosDao: await getUsuariosDao(),
+    usuariosDao: await getUsuariosDao({ hasher }),
     turnosDao: await getTurnosDao(),
   };
 
