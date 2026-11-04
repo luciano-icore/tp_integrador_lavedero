@@ -9,6 +9,19 @@ export const usuariosSeed = [
   { nombre: "María Gómez", email: "maria@test.com", password: "123", rol: "user" },
 ];
 
+/**
+ * Devuelve el seed de usuarios listo para guardar: reemplaza "password" (dato de ejemplo)
+ * por "passwordHash". Se hashea al arrancar, así ningún DAO ni base guarda texto plano.
+ */
+export async function usuariosSeedConHash(hasher) {
+  return Promise.all(
+    usuariosSeed.map(async ({ password, ...usuario }) => ({
+      ...usuario,
+      passwordHash: await hasher.hash(password),
+    }))
+  );
+}
+
 export const turnosSeed = [
   {
     clienteId: 2,
