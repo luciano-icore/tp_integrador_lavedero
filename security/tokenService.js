@@ -21,7 +21,7 @@ export function makeTokenService({ secret, expiresIn }) {
         return jwt.verify(token, secret, { algorithms: ["HS256"] });
       } catch (err) {
         if (err.name === "TokenExpiredError") {
-          throw new AppError("TOKEN_EXPIRED", "El token venció, iniciá sesión de nuevo", 401);
+          throw new AppError("TOKEN_VENCIDO", "El token venció, iniciá sesión de nuevo", 401);
         }
         throw new AppError("TOKEN_INVALID", "Token inválido", 401);
       }
