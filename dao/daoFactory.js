@@ -9,7 +9,7 @@
 import config from "../config/config.js";
 import TurnosMemoryDao from "./memory/TurnosMemoryDao.js";
 import UsuariosMemoryDao from "./memory/UsuariosMemoryDao.js";
-import { turnosSeed, usuariosSeed } from "./memory/seed.js";
+import { turnosSeed, usuariosSeedConHash } from "./memory/seed.js";
 
 const tipoInvalido = (tipo) => new Error(`PERSISTENCE_TYPE inválido: ${tipo}`);
 
@@ -23,12 +23,13 @@ export async function getTurnosDao() {
   throw tipoInvalido(tipo);
 }
 
-export async function getUsuariosDao() {
+// Recibe el hasher porque el seed de usuarios necesita guardar contraseñas hasheadas.
+export async function getUsuariosDao({ hasher }) {
   const tipo = config.persistenceType;
-  if (tipo === "memory") return new UsuariosMemoryDao(usuariosSeed);
+  if (tipo === "memory") return new UsuariosMemoryDao(await usuariosSeedConHash(hasher));
   if (tipo === "sequelize") {
     const { default: UsuariosSequelizeDao } = await import("./sequelize/UsuariosSequelizeDao.js");
-    return new UsuariosSequelizeDao(usuariosSeed);
+    return new UsuariosSequelizeDao(await usuariosSeedConHash(hasher));
   }
   throw tipoInvalido(tipo);
 }
