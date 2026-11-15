@@ -17,9 +17,11 @@ const campos = {
     .trim()
     .toLowerCase()
     .email("Email inválido"),
-  password: z
+   password: z
     .string({ error: "La contraseña es obligatoria" })
-    .min(3, "La contraseña debe tener al menos 3 caracteres"),
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    // bcrypt solo procesa los primeros 72 bytes: por eso se limita el máximo
+    .max(72, "La contraseña no puede superar los 72 caracteres"),
 };
 
 // POST /api/usuarios — registro

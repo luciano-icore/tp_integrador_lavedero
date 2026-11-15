@@ -13,13 +13,9 @@ UsuarioModel.init(
       unique: true,
       validate: { isEmail: true },
     },
-    password: { type: DataTypes.STRING(100), allowNull: false },
-    rol: {
-      type: DataTypes.STRING(10),
-      allowNull: false,
-      defaultValue: "user",
-      validate: { isIn: [["admin", "user"]] },
-    },
+        // Hash bcrypt de la contraseña (nunca la contraseña en texto plano). Los DAOs no lo devuelven
+    // en las lecturas comunes: solo getCredentialsByEmail lo expone, para el login.
+    passwordHash: { type: DataTypes.STRING(100), allowNull: false },
   },
   {
     sequelize,
