@@ -236,3 +236,18 @@ Content-Type: application/json
 ### T28 - El CSV también trae la columna "situacion" calculada (200, mirá las filas de Juan)
 GET {{base}}/turnos/export.csv?clienteId=1
 Authorization: Bearer {{tokenAdmin}}
+
+
+### ---------- Ejercicio 9 (opcional) — con el mismo CLOCK_NOW=2026-12-15T12:00:00Z ----------
+
+### T29 - 9.2: turnos ausentes de todos los clientes (lo resuelve la base aunque "ausente" no sea una columna)
+GET {{base}}/turnos?ausentes=true
+Authorization: Bearer {{tokenAdmin}}
+
+### T30 - 9.2: ausentes + estado finalizado → [] (un turno atendido nunca está ausente)
+GET {{base}}/turnos?ausentes=true&estado=Lavado%20finalizado
+Authorization: Bearer {{tokenAdmin}}
+
+### T31 - 9.2: ausentes=false no se admite (400 VALIDACION)
+GET {{base}}/turnos?ausentes=false
+Authorization: Bearer {{tokenAdmin}}

@@ -20,15 +20,17 @@ export default class TurnosMemoryDao {
   // Clase 13 — filtros opcionales que "resuelve la base" (en memoria, este método):
   //  - clienteId, estado: igualdad
   //  - desde (inclusive) y hastaAntesDe (exclusive): días "AAAA-MM-DD" comparados con la fecha del turno
+  //  - ausentesAntesDe ("AAAA-MM-DD", Ejercicio 9.2): pendientes con fecha anterior a ese día
   // Sin filtros devuelve todos (como antes).
-  async getAll({ clienteId, estado, desde, hastaAntesDe } = {}) {
+  async getAll({ clienteId, estado, desde, hastaAntesDe, ausentesAntesDe } = {}) {
     return this.#turnos
       .filter(
         (t) =>
           (clienteId === undefined || t.clienteId === clienteId) &&
           (estado === undefined || t.estado === estado) &&
           (desde === undefined || t.fecha >= desde) &&
-          (hastaAntesDe === undefined || t.fecha < hastaAntesDe)
+          (hastaAntesDe === undefined || t.fecha < hastaAntesDe) &&
+          (ausentesAntesDe === undefined || (t.estado === PENDIENTE && t.fecha < ausentesAntesDe))
       )
       .map((t) => ({ ...t }));
   }
@@ -48,10 +50,15 @@ export default class TurnosMemoryDao {
     );
   }
 
-  async save(data) {
+  // Ejercicio 9.1 — si llega `maxPendientes`, el conteo también va en el mismo paso síncrono que el alta.
+  async save({ maxPendientes, ...data }) {
     // Equivalente al índice único parcial de Sequelize: chequeo y alta en el MISMO paso síncrono
     // (sin un await en el medio), así dos pedidos simultáneos no pueden pasar los dos.
     if (this.#hayPendienteDuplicado(data)) throw patenteConTurnoPendiente();
+    const pendientes = this.#turnos.filter((t) => t.clienteId === data.clienteId && t.estado === PENDIENTE).length;
+    if (maxPendientes !== undefined && pendientes >= maxPendientes) {
+      throw new AppError("LIMITE_TURNOS_PENDIENTES", `Un cliente puede tener hasta ${maxPendientes} turnos pendientes`, 409);
+    }
     const nuevo = { id: this.#nextId++, reprogramaciones: 0, ...data };
     this.#turnos.push(nuevo);
     return { ...nuevo };

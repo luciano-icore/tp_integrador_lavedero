@@ -10,6 +10,7 @@ const turnoNoEncontrado = (id) =>
   new AppError("TURNO_NO_ENCONTRADO", `No existe un turno con id ${id}`, 404);
 
 export function makeTurnosController(useCases) {
+      // GET /api/turnos?estado=&clienteId=&desde=&hasta=&ausentes=true&sort=&page=&limit=
     const listar = async (req, res) => {
     const { items, total } = await useCases.getTurnos(req.validated.query, req.user);
     res.set("X-Total-Count", String(total));

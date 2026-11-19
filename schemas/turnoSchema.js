@@ -101,6 +101,8 @@ const filtrosListado = z.object({
   // Clase 13: rango de días (inclusive en los dos extremos)
   desde: z.iso.date({ error: "desde debe tener el formato YYYY-MM-DD" }).optional(),
   hasta: z.iso.date({ error: "hasta debe tener el formato YYYY-MM-DD" }).optional(),
+    // Ejercicio 9.2: solo "true" (turnos pendientes cuyo día ya pasó). "false" sería ambiguo: ¿pendientes o atendidos?
+  ausentes: z.enum(["true"], { error: "ausentes solo admite 'true'" }).transform(() => true).optional(),
   sort: z
     .enum([...CAMPOS_ORDENABLES, ...CAMPOS_ORDENABLES.map((c) => `-${c}`)], {
       error: `sort debe ser uno de: ${CAMPOS_ORDENABLES.join(", ")} (con - adelante para descendente)`,

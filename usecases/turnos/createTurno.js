@@ -97,10 +97,17 @@ async function createTurno(data, actor, { turnosDao, usuariosDao, events, calend
     calendario,
   });
 
-  // Nota: entre la consulta de arriba y este alta, otro pedido simultáneo podría colarse (condición de carrera).
-  // El duplicado de patente lo frena el índice único de la base; el tope de pendientes queda como ejercicio 9.
-  const turno = await turnosDao.save({ ...data, clienteId, estado: ESTADO_PENDIENTE });
-
+    // Entre la consulta de arriba y este alta, otro pedido simultáneo podría colarse (condición de carrera).
+  // El duplicado de patente lo frena el índice único de la base, y el tope (Ejercicio 9.1) lo vuelve a contar
+  // el DAO dentro de la misma transacción del alta: por eso le pasamos maxPendientes.
+  // El chequeo de arriba se mantiene: resuelve el caso normal sin abrir una transacción ni consultar el calendario.
+  const turno = await turnosDao.save({
+    ...data,
+    clienteId,
+    estado: ESTADO_PENDIENTE,
+    maxPendientes: reglas.maxPendientes,
+  });
+  
   // Se anuncia recién cuando el turno ya está guardado
   events.emit(EVENTS.TURNO_CREADO, turno);
   return { ...conSituacion(turno, hoy), feriadosDisponibles };

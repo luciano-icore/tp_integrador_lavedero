@@ -2,9 +2,9 @@
  * DAO de turnos con Sequelize. Misma interfaz que TurnosMemoryDao.
  * Devuelve siempre objetos planos, nunca instancias del ORM.
  */
-import { Op, literal, UniqueConstraintError } from "sequelize";
+import { Op, literal, UniqueConstraintError, Transaction } from "sequelize";
 import AppError from "../../errors/AppError.js";
-import { TurnoModel } from "../models/index.js";
+import { sequelize, TurnoModel } from "../models/index.js";
 
 const PENDIENTE = "Esperando el servicio";
 
@@ -41,8 +41,9 @@ export default class TurnosSequelizeDao {
   //  - clienteId, estado: igualdad
   //  - desde (inclusive) y hastaAntesDe (exclusive): días "AAAA-MM-DD". La fecha se guarda como texto
   //    "AAAA-MM-DDTHH:mm", que ordena igual que las fechas: "2026-11-24T10:00" >= "2026-11-24" es true.
+  //  - ausentesAntesDe ("AAAA-MM-DD", Ejercicio 9.2): pendientes con fecha anterior a ese día.
   // Sin filtros devuelve todos (como antes).
-  async getAll({ clienteId, estado, desde, hastaAntesDe } = {}) {
+  async getAll({ clienteId, estado, desde, hastaAntesDe, ausentesAntesDe } = {}) {
     const where = {};
     if (clienteId !== undefined) where.clienteId = clienteId;
     if (estado !== undefined) where.estado = estado;
@@ -52,6 +53,12 @@ export default class TurnosSequelizeDao {
         ...(hastaAntesDe !== undefined && { [Op.lt]: hastaAntesDe }),
       };
     }
+    if (ausentesAntesDe !== undefined) {
+      // "Ausente" no es una columna, pero se puede resolver en la base igual:
+      // WHERE estado = 'Esperando el servicio' AND fecha < '2026-11-19'
+      // Va con Op.and para no pisar los filtros `estado` y `fecha` de arriba.
+      where[Op.and] = [{ estado: PENDIENTE }, { fecha: { [Op.lt]: ausentesAntesDe } }];
+    }
     return TurnoModel.findAll({ where, raw: true, order: [["id", "ASC"]] });
   }
 
@@ -59,8 +66,26 @@ export default class TurnosSequelizeDao {
     return TurnoModel.findByPk(id, { raw: true });
   }
 
-  async save(data) {
-    const creado = await traducirDuplicado(() => TurnoModel.create(data));
+  // Ejercicio 9.1 — R1 sin carrera: si llega `maxPendientes`, el CONTEO de pendientes del cliente y el ALTA van
+  // en la MISMA transacción. El índice único no puede expresar "como máximo 3", así que la base no lo frena sola.
+  // En SQLite, una transacción IMMEDIATE toma el lock de escritura al empezar: un segundo pedido simultáneo
+  // espera a que termine el primero y, cuando cuenta, ya ve el turno nuevo. (En PostgreSQL/MySQL se haría
+  // con SELECT ... FOR UPDATE sobre el cliente, o con nivel SERIALIZABLE.)
+  async save({ maxPendientes, ...data }) {
+    const creado = await traducirDuplicado(() =>
+      sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (t) => {
+        if (maxPendientes !== undefined) {
+          const pendientes = await TurnoModel.count({
+            where: { clienteId: data.clienteId, estado: PENDIENTE },
+            transaction: t,
+          });
+          if (pendientes >= maxPendientes) {
+            throw new AppError("LIMITE_TURNOS_PENDIENTES", `Un cliente puede tener hasta ${maxPendientes} turnos pendientes`, 409);
+          }
+        }
+        return TurnoModel.create(data, { transaction: t });
+      })
+    );
     return creado.get({ plain: true });
   }
 

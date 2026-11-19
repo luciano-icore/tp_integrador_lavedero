@@ -15,6 +15,8 @@ import { conSituacion } from "../../domain/situacionTurno.js";
  *    `hasta` es inclusive: se traduce a "antes del día siguiente" ([desde, hasta + 1 día)).
  *    Las fechas de los turnos ya están en hora del lavadero ("AAAA-MM-DDTHH:mm"), así que alcanza con comparar texto.
  *  - Cada turno vuelve con su `situacion` calculada (pendiente / ausente / en proceso / finalizado).
+ *  - Ejercicio 9.2: `ausentes=true` también lo resuelve la BASE aunque "ausente" no sea una columna:
+ *    ausente = estado "Esperando el servicio" AND fecha < hoy. El caso de uso solo aporta "hoy" (del reloj).
  */
 async function getTurnos(filters, actor, { turnosDao, clock }) {
   if (actor.rol !== "admin") {
@@ -24,7 +26,8 @@ async function getTurnos(filters, actor, { turnosDao, clock }) {
     filters = { ...filters, clienteId: actor.id };
   }
 
-  const { estado, tipoVehiculo, clienteId, fecha, patente, desde, hasta, sort, page, limit } = filters;
+  const { estado, tipoVehiculo, clienteId, fecha, patente, desde, hasta, ausentes, sort, page, limit } = filters;
+  const hoy = clock.hoy();
 
   // 1) Filtros que resuelve la base
   let turnos = await turnosDao.getAll({
@@ -32,6 +35,7 @@ async function getTurnos(filters, actor, { turnosDao, clock }) {
     estado,
     desde,
     hastaAntesDe: hasta && sumarDiasCorridos(hasta, 1),
+    ausentesAntesDe: ausentes ? hoy : undefined,
   });
 
   // 2) Filtros que quedan en JavaScript (como hasta la clase 12)
@@ -53,7 +57,6 @@ async function getTurnos(filters, actor, { turnosDao, clock }) {
   // 4) Paginación, y la situación calculada de cada turno de la página
   const total = turnos.length;
   const inicio = (page - 1) * limit;
-  const hoy = clock.hoy();
   return { items: turnos.slice(inicio, inicio + limit).map((t) => conSituacion(t, hoy)), total };
 }
 
