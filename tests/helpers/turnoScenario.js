@@ -36,6 +36,23 @@ import { ESTADO_PENDIENTE } from "../../domain/situacionTurno.js";
  *   por test, y si la API está caída los tests fallarían sin que nuestro código tenga un bug.
  *   Los stubs y el fake con latencyMs: 0 hacen la suite rápida y determinista.
  *
+ *  *
+ * 9.1 Cobertura (npm run coverage, con los tests de los ej. 1 a 8):
+ *   | Carpeta          | % Lines | % Branch | Un archivo o línea sin cubrir importante                            |
+ *   | domain           | 100     | 94.4     | situacionTurno.js línea 27: un estado desconocido (`?? turno.estado`) |
+ *   | usecases/turnos  | 54.8    | 47.9     | getTurnos.js (0%): el 403 cuando un cliente pide turnos de otro       |
+ *   | gateways         | 84.3    | 70.0     | calendarioFactory.js (0%): qué calendario arma según CALENDARIO_TYPE  |
+ *   (utils no aparece en la consola porque está al 100%: el reporte "text" no lista lo que está completo.)
+ * 9.2 Mutaciones (tests que fallan): createTurno >= por > en R1: 0 (!) | estaAusente < por <=: 3 |
+ *   horario hora < HORA_CIERRE por <=: 1 | validarCalendario sin `if (!(err instanceof AppError)) throw err;`: 2 |
+ *   reprogramarTurno con la anticipación contada desde la fecha VIEJA del turno (no desde hoy): 2
+ * 9.3 La de R1 SOBREVIVIÓ: el DAO vuelve a contar los pendientes dentro del alta (ej. 9.1 de la clase 13) y
+ *   rechaza con el MISMO código, así que ningún test notaba la diferencia. Lo único que cambiaba es que el pedido
+ *   llegaba más lejos y consultaba el calendario. Test agregado en createTurno.test.js: "R1 corta en el caso de
+ *   uso (fail fast)..." con un spy sobre el calendario. Con ese test, la mutación hace fallar 1.
+ * 9.4 100% de cobertura no garantiza que no haya bugs: la cobertura mide qué líneas se EJECUTARON, no qué se
+ *   VERIFICÓ. Ejemplo: it("crea un turno", async () => { await useCases.createTurno(nuevoTurno(), JUAN); });
+ *   recorre casi todo createTurno y no tiene ni un expect. Las mutaciones son las que muestran eso.
  * =====================================================================
  */
 
