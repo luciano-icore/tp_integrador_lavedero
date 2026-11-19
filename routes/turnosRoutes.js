@@ -20,6 +20,7 @@ export function crearTurnosRouter(controller, { authenticate, authorize }) {
   router.use(authenticate);
 
   router.get("/", validate(listarTurnosQuerySchema, "query"), controller.listar);
+  router.get("/:id/detalle", validate(idParamSchema, "params"), controller.detalle);
   router.get("/:id", validate(idParamSchema, "params"), controller.obtener);
   router.post("/", validate(crearTurnoSchema), controller.crear);
   router.put(

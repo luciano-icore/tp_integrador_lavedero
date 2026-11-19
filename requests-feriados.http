@@ -1,0 +1,61 @@
+### =====================================================================
+### Clase 12 — Calendario de feriados (API externa) y exportación a CSV
+### Ejecutar en orden. El título dice el código esperado.
+### Para probar sin internet: CALENDARIO_TYPE=fake en el .env (el año 1999 simula un error 500).
+### Feriados que se usan: 2026-12-25 (Navidad), 2026-07-09 (Independencia), 2026-11-23 (Soberanía Nacional).
+### =====================================================================
+@base = http://localhost:3000/api
+@cincoFechas = 2026-12-25,2026-07-09,2026-11-20,2026-11-23,2026-11-24
+
+### F0 - Login admin (200)
+# @name loginAdmin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "{{$dotenv ADMIN_EMAIL}}", "password": "{{$dotenv ADMIN_PASSWORD}}" }
+
+###
+@tokenAdmin = {{loginAdmin.response.body.token}}
+
+### F0b - Login cliente Juan, id 1 (200)
+# @name loginJuan
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "cliente@test.com", "password": "cliente1234" }
+
+###
+@tokenJuan = {{loginJuan.response.body.token}}
+
+### ---------- Ejercicio 3: detalle enriquecido ----------
+
+### F1 - Detalle de un turno: turno + calendarioStatus "habil" (200)
+GET {{base}}/turnos/1/detalle
+Authorization: Bearer {{tokenAdmin}}
+
+### F2 - Detalle de un turno inexistente (404 TURNO_NO_ENCONTRADO)
+GET {{base}}/turnos/999/detalle
+Authorization: Bearer {{tokenAdmin}}
+
+### F3 - Detalle sin token (401 TOKEN_FALTANTE)
+GET {{base}}/turnos/1/detalle
+
+### F4 - Juan ve el detalle de un turno de María (403 PROHIBIDO: mismas reglas que GET /turnos/:id)
+GET {{base}}/turnos/3/detalle
+Authorization: Bearer {{tokenJuan}}
+
+### ---------- Regla de negocio: el lavadero no abre los feriados ----------
+
+### F5 - Sacar turno en Navidad (422 FECHA_FERIADO)
+POST {{base}}/turnos
+Authorization: Bearer {{tokenJuan}}
+Content-Type: application/json
+
+{ "patente": "AC456BD", "fecha": "2026-12-25T10:00", "tipoVehiculo": "auto" }
+
+### F6 - Sacar turno un día hábil (201)
+POST {{base}}/turnos
+Authorization: Bearer {{tokenJuan}}
+Content-Type: application/json
+
+{ "patente": "AC456BD", "fecha": "2026-11-24T10:00", "tipoVehiculo": "auto" }

@@ -23,6 +23,14 @@ export function makeTurnosController(useCases) {
     res.status(200).json(turno);
   };
 
+    // GET /api/turnos/:id/detalle (Clase 12): turno + si ese día es feriado
+  const detalle = async (req, res) => {
+    const { id } = req.validated.params;
+    const turno = await useCases.getTurnoDetalle(id, req.user);
+    if (!turno) throw turnoNoEncontrado(id);
+    res.status(200).json(turno);
+  };
+  
   const crear = async (req, res) => {
     const nuevo = await useCases.createTurno(req.body, req.user);
     res.status(201).json(nuevo);
@@ -42,5 +50,5 @@ export function makeTurnosController(useCases) {
     res.status(204).end();
   };
 
-  return { listar, obtener, crear, actualizar, eliminar };
+  return { listar, obtener, detalle, crear, actualizar, eliminar };
 }
