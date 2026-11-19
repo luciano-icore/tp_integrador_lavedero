@@ -10,21 +10,21 @@ const turnoNoEncontrado = (id) =>
   new AppError("TURNO_NO_ENCONTRADO", `No existe un turno con id ${id}`, 404);
 
 export function makeTurnosController(useCases) {
-  const listar = async (req, res) => {
-    const { items, total } = await useCases.getTurnos(req.validated.query);
+    const listar = async (req, res) => {
+    const { items, total } = await useCases.getTurnos(req.validated.query, req.user);
     res.set("X-Total-Count", String(total));
     res.status(200).json(items);
   };
 
   const obtener = async (req, res) => {
     const { id } = req.validated.params;
-    const turno = await useCases.getTurnoById(id);
+    const turno = await useCases.getTurnoById(id, req.user);
     if (!turno) throw turnoNoEncontrado(id);
     res.status(200).json(turno);
   };
 
   const crear = async (req, res) => {
-    const nuevo = await useCases.createTurno(req.body);
+    const nuevo = await useCases.createTurno(req.body, req.user);
     res.status(201).json(nuevo);
   };
 
