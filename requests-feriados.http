@@ -59,3 +59,37 @@ Authorization: Bearer {{tokenJuan}}
 Content-Type: application/json
 
 { "patente": "AC456BD", "fecha": "2026-11-24T10:00", "tipoVehiculo": "auto" }
+
+
+### ---------- Ejercicio 4 y 5: secuencial, paralelo, limitado y agrupado ----------
+
+### F7 - 5 fechas en modo SECUENCIAL (mirá httpRequests y elapsedMs)
+GET {{base}}/feriados/verificar?mode=sequential&fechas={{cincoFechas}}
+Authorization: Bearer {{tokenJuan}}
+
+### F8 - Las mismas 5 en PARALELO (mismo resultado, mucho menos tiempo)
+GET {{base}}/feriados/verificar?mode=parallel&fechas={{cincoFechas}}
+Authorization: Bearer {{tokenJuan}}
+
+### F9 - Las mismas 5 en paralelo LIMITADO (máximo EXTERNAL_CONCURRENCY a la vez)
+GET {{base}}/feriados/verificar?mode=limited&fechas={{cincoFechas}}
+Authorization: Bearer {{tokenJuan}}
+
+### F10 - Las mismas 5 AGRUPADAS por año (un solo pedido HTTP)
+GET {{base}}/feriados/verificar?mode=batch&fechas={{cincoFechas}}
+Authorization: Bearer {{tokenJuan}}
+
+### F11 - Con una fecha de 1999 (solo fake): en parallel falla UNA; en batch fallan todas las de 1999
+GET {{base}}/feriados/verificar?mode=parallel&fechas=2026-12-25,1999-05-01,2026-11-24
+Authorization: Bearer {{tokenJuan}}
+
+### F12 - Fecha con formato inválido (400 VALIDACION)
+GET {{base}}/feriados/verificar?fechas=25/12/2026
+Authorization: Bearer {{tokenJuan}}
+
+### F13 - Modo inexistente (400 VALIDACION)
+GET {{base}}/feriados/verificar?fechas=2026-12-25&mode=rapido
+Authorization: Bearer {{tokenJuan}}
+
+### F14 - Verificar sin token (401)
+GET {{base}}/feriados/verificar?fechas=2026-12-25
