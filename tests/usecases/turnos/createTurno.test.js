@@ -140,6 +140,18 @@ describe("createTurno", () => {
       });
     });
 
+        // Ejercicio 9.3 — este test se agregó porque la mutación `>=` por `>` en R1 NO hacía fallar ningún test:
+    // el DAO vuelve a contar los pendientes dentro del alta (ej. 9.1 de la clase 13) y rechaza con el MISMO código.
+    // Lo único que cambia es que el pedido llega más lejos: consulta el calendario. Eso es lo que verificamos.
+    it("R1 corta en el caso de uso (fail fast): con el tope alcanzado, NO se consulta el calendario", async () => {
+      const { useCases, givenTurno, calendario } = buildTurnoScenario();
+      await conPendientes(givenTurno, 3);
+      const spy = vi.spyOn(calendario, "getFeriadosDeAnios");
+
+      await expect(useCases.createTurno(nuevoTurno(), JUAN)).rejects.toMatchObject({ code: "LIMITE_TURNOS_PENDIENTES" });
+      expect(spy).not.toHaveBeenCalled();
+    });
+
     it("tras el rechazo, la cantidad de pendientes no cambió", async () => {
       const { useCases, givenTurno, pendientesDe } = buildTurnoScenario();
       await conPendientes(givenTurno, 3);
