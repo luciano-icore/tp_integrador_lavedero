@@ -4,6 +4,7 @@ import createTurno from "./createTurno.js";
 import updateTurno from "./updateTurno.js";
 import deleteTurno from "./deleteTurno.js";
 import getTurnoDetalle from "./getTurnoDetalle.js";
+import exportTurnosCsv from "./exportTurnosCsv.js";
 
 /**
  * Factory de casos de uso de turnos.
@@ -18,6 +19,8 @@ function makeTurnoUseCases(dao, usuariosDao, events, calendario) {
     deleteTurno: (id) => deleteTurno(id, dao),
         // Clase 12
     getTurnoDetalle: (id, actor) => getTurnoDetalle(id, actor, dao, calendario),
+    exportTurnosCsv: (params, actor) =>
+      exportTurnosCsv(params, actor, (filtros, a) => getTurnos(filtros, a, dao), usuariosDao, calendario),
   };
 }
 

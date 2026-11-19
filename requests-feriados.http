@@ -93,3 +93,33 @@ Authorization: Bearer {{tokenJuan}}
 
 ### F14 - Verificar sin token (401)
 GET {{base}}/feriados/verificar?fechas=2026-12-25
+
+
+### ---------- Ejercicio 6: exportar turnos a CSV (solo admin) ----------
+
+### F15 - Exportar todos los turnos (200, se descarga turnos-AAAA-MM-DD.csv)
+GET {{base}}/turnos/export.csv
+Authorization: Bearer {{tokenAdmin}}
+
+### F16 - Exportar con los filtros del listado: un estado, ordenado por fecha descendente
+GET {{base}}/turnos/export.csv?estado=Esperando%20el%20servicio&sort=-fecha
+Authorization: Bearer {{tokenAdmin}}
+
+### F17 - Exportar enriquecido con la columna "feriado" (mirá el header X-Enrichment: ok)
+GET {{base}}/turnos/export.csv?enriquecer=true
+Authorization: Bearer {{tokenAdmin}}
+
+### F18 - Separador ";" para que Excel en español lo abra en columnas
+GET {{base}}/turnos/export.csv?enriquecer=true&separador=;
+Authorization: Bearer {{tokenAdmin}}
+
+### F19 - Exportar como cliente (403 PROHIBIDO)
+GET {{base}}/turnos/export.csv
+Authorization: Bearer {{tokenJuan}}
+
+### F20 - Exportar sin token (401)
+GET {{base}}/turnos/export.csv
+
+### F21 - Separador inválido (400 VALIDACION)
+GET {{base}}/turnos/export.csv?separador=x
+Authorization: Bearer {{tokenAdmin}}

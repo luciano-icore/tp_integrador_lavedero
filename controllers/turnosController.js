@@ -31,6 +31,14 @@ export function makeTurnosController(useCases) {
     res.status(200).json(turno);
   };
   
+    // GET /api/turnos/export.csv (Clase 12): descarga del listado en CSV
+  const exportarCsv = async (req, res) => {
+    const { csv, filename, enrichment } = await useCases.exportTurnosCsv(req.validated.query, req.user);
+    res.set("X-Enrichment", enrichment); // ok | unavailable | skipped
+    res.attachment(filename); // Content-Disposition: attachment (se descarga) + Content-Type: text/csv
+    res.send(csv);
+  };
+  
   const crear = async (req, res) => {
     const nuevo = await useCases.createTurno(req.body, req.user);
     res.status(201).json(nuevo);
@@ -50,5 +58,5 @@ export function makeTurnosController(useCases) {
     res.status(204).end();
   };
 
-  return { listar, obtener, detalle, crear, actualizar, eliminar };
+  return { listar, obtener, detalle, exportarCsv, crear, actualizar, eliminar };
 }
