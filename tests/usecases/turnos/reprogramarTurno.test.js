@@ -147,4 +147,69 @@ describe("reprogramarTurno", () => {
       statusCode: 409,
     });
   });
+  // Clase 14 - Ejercicio 10.3 (TDD): R6 se escribió TEST PRIMERO. Este fue el primer test, y arrancó en ROJO.
+  describe("R6: no se reprograma si el cliente tiene OTRO turno ausente", () => {
+    it("tiene otro turno ausente → 409 CLIENTE_CON_AUSENCIAS (con el detalle) y la fecha no cambia", async () => {
+      const { useCases, givenTurno, turnosDao } = buildTurnoScenario(); // hoy: 2026-11-04
+      const turno = await givenTurno({ clienteId: JUAN.id, patente: "AAA111", fecha: "2026-11-10T10:00" });
+      const ausente = await givenTurno({ clienteId: JUAN.id, patente: "BBB222", fecha: "2026-11-02T09:00" });
+
+      await expect(useCases.reprogramarTurno(turno.id, { fecha: "2026-11-12T10:00" }, JUAN)).rejects.toMatchObject({
+        code: "CLIENTE_CON_AUSENCIAS",
+        statusCode: 409,
+        details: [{ turnoId: ausente.id, patente: "BBB222", fecha: "2026-11-02T09:00" }],
+      });
+      expect(await turnosDao.getById(turno.id)).toMatchObject({ fecha: "2026-11-10T10:00", reprogramaciones: 0 });
+    });
+
+    // Los que siguen se agregaron DESPUÉS del verde: cuidan los bordes de la regla
+    it("un turno viejo que SÍ se atendió no bloquea", async () => {
+      const { useCases, givenTurno } = buildTurnoScenario();
+      const turno = await givenTurno({ clienteId: JUAN.id, patente: "AAA111", fecha: "2026-11-10T10:00" });
+      await givenTurno({ clienteId: JUAN.id, patente: "BBB222", fecha: "2026-11-02T09:00", estado: "Lavado finalizado" });
+
+      await expect(useCases.reprogramarTurno(turno.id, { fecha: "2026-11-12T10:00" }, JUAN)).resolves.toMatchObject({
+        reprogramaciones: 1,
+      });
+    });
+
+    it("el ausente de OTRO cliente no bloquea", async () => {
+      const { useCases, givenTurno } = buildTurnoScenario();
+      const turno = await givenTurno({ clienteId: JUAN.id, patente: "AAA111", fecha: "2026-11-10T10:00" });
+      await givenTurno({ clienteId: MARIA.id, patente: "BBB222", fecha: "2026-11-02T09:00" });
+
+      await expect(useCases.reprogramarTurno(turno.id, { fecha: "2026-11-12T10:00" }, JUAN)).resolves.toMatchObject({
+        reprogramaciones: 1,
+      });
+    });
+
+    it("se mira al DUEÑO del turno, no a quien reprograma: el admin tampoco puede", async () => {
+      const { useCases, givenTurno } = buildTurnoScenario();
+      const turno = await givenTurno({ clienteId: JUAN.id, patente: "AAA111", fecha: "2026-11-10T10:00" });
+      await givenTurno({ clienteId: JUAN.id, patente: "BBB222", fecha: "2026-11-02T09:00" });
+
+      await expect(useCases.reprogramarTurno(turno.id, { fecha: "2026-11-12T10:00" }, ADMIN)).rejects.toMatchObject({
+        code: "CLIENTE_CON_AUSENCIAS",
+      });
+    });
+
+    it("orden: si el turno que quiere reprogramar es EL ausente, responde TURNO_AUSENTE (R6 habla de OTRO)", async () => {
+      const { useCases, givenTurno } = buildTurnoScenario();
+      const turno = await givenTurno({ clienteId: JUAN.id, patente: "AAA111", fecha: "2026-11-02T09:00" });
+
+      await expect(useCases.reprogramarTurno(turno.id, { fecha: "2026-11-12T10:00" }, JUAN)).rejects.toMatchObject({
+        code: "TURNO_AUSENTE",
+      });
+    });
+
+    it("borde: otro turno de HOY a la mañana todavía no es ausente, no bloquea", async () => {
+      const { useCases, givenTurno } = buildTurnoScenario();
+      const turno = await givenTurno({ clienteId: JUAN.id, patente: "AAA111", fecha: "2026-11-10T10:00" });
+      await givenTurno({ clienteId: JUAN.id, patente: "BBB222", fecha: "2026-11-04T08:00" });
+
+      await expect(useCases.reprogramarTurno(turno.id, { fecha: "2026-11-12T10:00" }, JUAN)).resolves.toMatchObject({
+        reprogramaciones: 1,
+      });
+    });
+  });
 });
